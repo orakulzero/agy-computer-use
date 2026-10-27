@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "agy-computer-use_computer_use": {
+      "command": "python",
+      "args": ["-m", "agy_computer_use.mcp_server"],
+      "timeout_ms": 15000,
+      "tools": [
+        "cu_capture_som",
+        "cu_click",
+        "cu_type",
+        "cu_hotkey",
+        "cu_scroll",
+        "cu_verify_oracle",
+        "cu_merkle_audit"
+      ]
+    }
+  }
+}

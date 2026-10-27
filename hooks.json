@@ -1,0 +1,5 @@
+{
+  "consolidated_into": "agy-golden-stack",
+  "description": "Lifecycle hooks routed through single-process GoldenStackBus and agy-doctor-mux dispatcher.",
+  "hooks": {}
+}

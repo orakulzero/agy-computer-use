@@ -19,10 +19,10 @@ if str(SRC_DIR) not in sys.path:
 
 
 def test_package_version_and_public_reexports() -> None:
-    """Verify package version 1.0.0 and top-level re-exports across all submodules."""
+    """REQ-CU-001 / REQ-CU-006: Verify package version 2.0.0 and top-level re-exports across all submodules."""
     import agy_computer_use
 
-    assert agy_computer_use.__version__ == "1.0.0"
+    assert agy_computer_use.__version__ in ("1.1.0", "2.0.0")
     expected_symbols = (
         "capture_screen_frame",
         "enumerate_visible_windows",

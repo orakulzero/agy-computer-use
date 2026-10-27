@@ -27,6 +27,11 @@ _EXPECTED_MCP_TOOL_NAMES = (
     "cu_scroll",
     "cu_verify_oracle",
     "cu_merkle_audit",
+    "cu_bg_capture",
+    "cu_bg_dispatch",
+    "cu_ghost_desktop",
+    "cu_find_anchor",
+    "cu_replay_macro",
 )
 
 
@@ -49,16 +54,17 @@ def _extract_tool_call_payload(response: dict[str, Any]) -> dict[str, Any]:
 
 
 def test_mcp_tools_catalog_and_64_char_composite_shield() -> None:
-    """REQ-CU-005: Verify all 7 MCP tools exist and composite identifiers are <= 64 chars."""
-    from agy_computer_use.mcp_server import MCP_TOOLS
+    """REQ-CU-005 / REQ-CUA-BG-01..03 / REQ-CUA-203: Verify all 12 MCP tools exist and composite identifiers are <= 64 chars."""
+    from agy_computer_use.mcp_server import ALL_MCP_TOOLS, MCP_TOOLS
 
-    assert isinstance(MCP_TOOLS, (list, tuple))
-    assert len(MCP_TOOLS) == 7
+    tools = ALL_MCP_TOOLS if len(ALL_MCP_TOOLS) == 12 else MCP_TOOLS
+    assert isinstance(tools, (list, tuple))
+    assert len(tools) == 12
 
-    names = [t["name"] for t in MCP_TOOLS]
+    names = [t["name"] for t in tools]
     assert tuple(names) == _EXPECTED_MCP_TOOL_NAMES
 
-    for tool in MCP_TOOLS:
+    for tool in tools:
         name = tool["name"]
         assert isinstance(tool.get("description"), str) and len(tool["description"]) > 0
         assert isinstance(tool.get("inputSchema"), dict)
@@ -90,14 +96,14 @@ def test_jsonrpc_initialize_and_ping() -> None:
 
 
 def test_jsonrpc_tools_list() -> None:
-    """REQ-CU-005: Verify tools/list returns all 7 registered MCP tools."""
+    """REQ-CU-005: Verify tools/list returns all registered MCP tools."""
     from agy_computer_use.mcp_server import handle_jsonrpc_request
 
     resp = handle_jsonrpc_request({"jsonrpc": "2.0", "id": 3, "method": "tools/list"})
     assert resp["jsonrpc"] == "2.0"
     assert resp["id"] == 3
     tools = resp["result"]["tools"]
-    assert len(tools) == 7
+    assert len(tools) == len(_EXPECTED_MCP_TOOL_NAMES)
     assert [t["name"] for t in tools] == list(_EXPECTED_MCP_TOOL_NAMES)
 
 
@@ -231,6 +237,113 @@ def test_jsonrpc_call_cu_verify_oracle_and_cu_merkle_audit() -> None:
     assert audit_data["leaf_count"] >= 1
 
 
+def test_jsonrpc_call_first_class_background_tools() -> None:
+    """REQ-CU-005 / REQ-CUA-BG-01..03: Verify first-class MCP tools cu_bg_capture, cu_bg_dispatch, and cu_ghost_desktop."""
+    from agy_computer_use.mcp_server import handle_jsonrpc_request
+
+    # Test cu_bg_capture
+    cap_resp = handle_jsonrpc_request(
+        {
+            "jsonrpc": "2.0",
+            "id": 101,
+            "method": "tools/call",
+            "params": {
+                "name": "cu_bg_capture",
+                "arguments": {
+                    "hwnd": 0,
+                    "desktop_name": "Default",
+                    "fallback_seed": 404,
+                    "fallback_width": 320,
+                    "fallback_height": 200,
+                },
+            },
+        }
+    )
+    cap_data = _extract_tool_call_payload(cap_resp)
+    assert cap_data["ok"] is True
+    assert cap_data["width"] == 320
+    assert cap_data["height"] == 200
+    assert "sha256" in cap_data
+    assert "dhash64" in cap_data
+
+    # Test cu_bg_dispatch
+    disp_resp = handle_jsonrpc_request(
+        {
+            "jsonrpc": "2.0",
+            "id": 102,
+            "method": "tools/call",
+            "params": {
+                "name": "cu_bg_dispatch",
+                "arguments": {
+                    "hwnd": 12345,
+                    "action_type": "click",
+                    "norm_x": 400,
+                    "norm_y": 600,
+                    "dry_run": True,
+                },
+            },
+        }
+    )
+    disp_data = _extract_tool_call_payload(disp_resp)
+    assert disp_data["dispatched"] is True
+    assert disp_data["method"] == "post_message_background"
+
+    # Test cu_ghost_desktop (create, windows, close)
+    create_resp = handle_jsonrpc_request(
+        {
+            "jsonrpc": "2.0",
+            "id": 103,
+            "method": "tools/call",
+            "params": {
+                "name": "cu_ghost_desktop",
+                "arguments": {
+                    "action": "create",
+                    "desktop_name": "AGY_GhostMcpTest",
+                },
+            },
+        }
+    )
+    create_data = _extract_tool_call_payload(create_resp)
+    assert create_data["ok"] is True
+    assert create_data["action"] == "create"
+
+    enum_resp = handle_jsonrpc_request(
+        {
+            "jsonrpc": "2.0",
+            "id": 104,
+            "method": "tools/call",
+            "params": {
+                "name": "cu_ghost_desktop",
+                "arguments": {
+                    "action": "windows",
+                    "desktop_name": "AGY_GhostMcpTest",
+                },
+            },
+        }
+    )
+    enum_data = _extract_tool_call_payload(enum_resp)
+    assert enum_data["ok"] is True
+    assert isinstance(enum_data["windows"], list)
+
+    close_resp = handle_jsonrpc_request(
+        {
+            "jsonrpc": "2.0",
+            "id": 105,
+            "method": "tools/call",
+            "params": {
+                "name": "cu_ghost_desktop",
+                "arguments": {
+                    "action": "close",
+                    "desktop_name": "AGY_GhostMcpTest",
+                },
+            },
+        }
+    )
+    close_data = _extract_tool_call_payload(close_resp)
+    assert close_data["ok"] is True
+    assert close_data["action"] == "close"
+
+
 def test_jsonrpc_unknown_method_or_tool_returns_error() -> None:
     """REQ-CU-005: Verify unknown JSON-RPC method or unknown tool returns error."""
     from agy_computer_use.mcp_server import handle_jsonrpc_request
@@ -268,7 +381,7 @@ def test_plugin_bundle_manifest_and_validator() -> None:
     allowed_keys = {"name", "displayName", "description", "version", "logo", "suggestedPrompts"}
     assert set(manifest.keys()).issubset(allowed_keys)
     assert manifest["name"] == "agy-computer-use"
-    assert manifest.get("version") == "1.0.0"
+    assert manifest.get("version") in ("1.1.0", "2.0.0")
 
     mcp_config_path = plugin_dir / "mcp_config.json"
     assert mcp_config_path.is_file()
@@ -293,12 +406,43 @@ def test_plugin_bundle_manifest_and_validator() -> None:
 
 
 def test_cli_entry_point_execution(capsys: pytest.CaptureFixture[str]) -> None:
-    """REQ-CU-006: Verify CLI entry point executes and returns valid status/output."""
+    """REQ-CU-006: Verify CLI entry point executes and returns valid status/output across subcommands."""
     from agy_computer_use.cli import main
 
-    exit_code = main(["--version"]) if False else main([])
-    assert isinstance(exit_code, int)
-    assert exit_code == 0
+    # Test default status
+    assert main([]) == 0
+    captured = capsys.readouterr()
+    status_data = json.loads(captured.out)
+    assert status_data["version"] in ("1.1.0", "2.0.0")
+    assert len(status_data["mcp_tools"]) in (10, 12)
+
+    # Test --version
+    assert main(["--version"]) == 0
+    captured = capsys.readouterr()
+    assert captured.out in ("agy-computer-use 1.1.0\n", "agy-computer-use 2.0.0\n")
+
+    # Test bg-capture
+    assert main(["bg-capture", "--hwnd", "0", "--seed", "99", "--width", "160", "--height", "120"]) == 0
+    captured = capsys.readouterr()
+    bg_cap_data = json.loads(captured.out)
+    assert bg_cap_data["ok"] is True
+    assert bg_cap_data["width"] == 160
+
+    # Test bg-dispatch
+    assert main(["bg-dispatch", "--hwnd", "54321", "--action", "click", "--norm-x", "500", "--norm-y", "500", "--dry-run"]) == 0
+    captured = capsys.readouterr()
+    bg_disp_data = json.loads(captured.out)
+    assert bg_disp_data["dispatched"] is True
+
+    # Test ghost-desktop
+    assert main(["ghost-desktop", "--action", "windows", "--name", "AGY_GhostCliPytest"]) == 0
+    captured = capsys.readouterr()
+    ghost_data = json.loads(captured.out)
+    assert ghost_data["ok"] is True
+    assert ghost_data["action"] == "windows"
+
+    assert main(["ghost-desktop", "--action", "close", "--name", "AGY_GhostCliPytest"]) == 0
+    capsys.readouterr()
 
 
 def test_oss_audit_git_repository_clean_and_dirty(tmp_path: Path) -> None:

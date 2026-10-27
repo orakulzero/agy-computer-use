@@ -2,7 +2,7 @@
   "name": "agy-computer-use",
   "displayName": "AGY Computer Use & GUI Grounding",
   "description": "Win32 GDI desktop screen capture, UIA Set-of-Marks (SoM) visual grounding, [0..1000] coordinate normalization, SendInput synthesis, and RFC 6962 visual safety oracle.",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "logo": "assets/logo.svg",
   "suggestedPrompts": [
     "Capture screen frame with Set-of-Marks overlay",

@@ -35,7 +35,7 @@ def test_hypothesis_normalize_bounds_invariants(
     origin_x: int,
     origin_y: int,
 ) -> None:
-    """Property 1: normalize_to_grid_1000 always maps into integer [0, 1000] x [0, 1000]."""
+    """REQ-CU-002: Property 1: normalize_to_grid_1000 always maps into integer [0, 1000] x [0, 1000]."""
     from agy_computer_use.som import normalize_to_grid_1000
 
     nx, ny = normalize_to_grid_1000(
@@ -69,7 +69,7 @@ def test_hypothesis_normalize_monotonicity(
     screen_width: int,
     screen_height: int,
 ) -> None:
-    """Property 2: normalize_to_grid_1000 is monotonically non-decreasing in both axes."""
+    """REQ-CU-002: Property 2: normalize_to_grid_1000 is monotonically non-decreasing in both axes."""
     from agy_computer_use.som import normalize_to_grid_1000
 
     nx1, ny1 = normalize_to_grid_1000(x1, y1, screen_width=screen_width, screen_height=screen_height)
@@ -97,7 +97,7 @@ def test_hypothesis_bijective_grid_1000_roundtrip(
     origin_x: int,
     origin_y: int,
 ) -> None:
-    """Property 3: Denormalizing then normalizing recovers [0..1000] within <= 1 grid unit."""
+    """REQ-CU-002 / REQ-CU-003: Property 3: Denormalizing then normalizing recovers [0..1000] within <= 1 grid unit."""
     from agy_computer_use.som import denormalize_from_grid_1000, normalize_to_grid_1000
 
     x_px, y_px = denormalize_from_grid_1000(
@@ -138,7 +138,7 @@ def test_hypothesis_multi_monitor_negative_offset_translation_invariance(
     screen_width: int,
     screen_height: int,
 ) -> None:
-    """Property 4: Shifting both pixel coordinates and monitor origin preserves normalized coords."""
+    """REQ-CU-002: Property 4: Shifting both pixel coordinates and monitor origin preserves normalized coords."""
     from agy_computer_use.som import normalize_to_grid_1000
 
     base_nx, base_ny = normalize_to_grid_1000(
@@ -174,7 +174,7 @@ def test_hypothesis_dpi_scale_ordering(
     dpi_low: float,
     dpi_delta: float,
 ) -> None:
-    """Property 5: Denormalization with higher DPI scale yields monotonic physical coordinates."""
+    """REQ-CU-002: Property 5: Denormalization with higher DPI scale yields monotonic physical coordinates."""
     from agy_computer_use.som import denormalize_from_grid_1000
 
     dpi_high = dpi_low + dpi_delta
@@ -200,7 +200,7 @@ def test_hypothesis_dhash64_determinism_and_uint64_bounds(
     width: int,
     height: int,
 ) -> None:
-    """Property 6: compute_frame_dhash64 is deterministic and bounded in [0, 2^64 - 1]."""
+    """REQ-CU-004: Property 6: compute_frame_dhash64 is deterministic and bounded in [0, 2^64 - 1]."""
     from agy_computer_use.capture import capture_screen_frame
     from agy_computer_use.safety_oracle import compute_frame_dhash64
 
@@ -218,7 +218,7 @@ def test_hypothesis_dhash64_determinism_and_uint64_bounds(
     c=st.integers(min_value=0, max_value=(1 << 64) - 1),
 )
 def test_hypothesis_hamming_delta_metric_space_axioms(a: int, b: int, c: int) -> None:
-    """Property 7: Hamming delta satisfies identity, symmetry, triangle inequality, and epistemic law."""
+    """REQ-CU-004: Property 7: Hamming delta satisfies identity, symmetry, triangle inequality, and epistemic law."""
     from agy_computer_use.safety_oracle import compute_visual_hamming_delta
 
     d_aa = compute_visual_hamming_delta(a, a)
@@ -246,7 +246,7 @@ def test_hypothesis_hamming_delta_metric_space_axioms(a: int, b: int, c: int) ->
 @settings(max_examples=15, deadline=None)
 @given(leaf_count=st.integers(min_value=1, max_value=12))
 def test_hypothesis_rfc6962_merkle_proof_soundness(leaf_count: int) -> None:
-    """Property 8: Every leaf in an N-leaf VisualActionOracle verifies against the Merkle root."""
+    """REQ-CU-005: Property 8: Every leaf in an N-leaf VisualActionOracle verifies against the Merkle root."""
     from agy_computer_use.capture import capture_screen_frame
     from agy_computer_use.safety_oracle import VisualActionOracle
 
@@ -278,7 +278,7 @@ def test_hypothesis_rfc6962_merkle_proof_soundness(leaf_count: int) -> None:
     flip_pos=st.integers(min_value=0, max_value=63),
 )
 def test_hypothesis_rfc6962_merkle_root_tamper_detection(leaf_count: int, flip_pos: int) -> None:
-    """Property 9: Corrupting any hex digit of expected_root invalidates all Merkle inclusion proofs."""
+    """REQ-CU-005: Property 9: Corrupting any hex digit of expected_root invalidates all Merkle inclusion proofs."""
     from agy_computer_use.capture import capture_screen_frame
     from agy_computer_use.safety_oracle import VisualActionOracle
 

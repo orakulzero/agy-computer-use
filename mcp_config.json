@@ -11,7 +11,10 @@
         "cu_hotkey",
         "cu_scroll",
         "cu_verify_oracle",
-        "cu_merkle_audit"
+        "cu_merkle_audit",
+        "cu_bg_capture",
+        "cu_bg_dispatch",
+        "cu_ghost_desktop"
       ]
     }
   }

@@ -28,7 +28,7 @@ _PALETTE: tuple[tuple[int, int, int], ...] = (
 
 
 def get_monitor_dpi_scale(hwnd: int | None = None) -> float:
-    """Detect monitor DPI scale factor relative to 96 DPI, clamped to [0.5, 4.0]."""
+    """REQ-CU-002: Detect monitor DPI scale factor relative to 96 DPI, clamped to [0.5, 4.0]."""
     dpi = 96.0
     if sys.platform == "win32":
         try:
@@ -60,7 +60,7 @@ def normalize_to_grid_1000(
     origin_x: int = 0,
     origin_y: int = 0,
 ) -> tuple[int, int]:
-    """Map physical pixel coordinates (x_px, y_px) into integer [0, 1000] x [0, 1000] grid."""
+    """REQ-CU-002: Map physical pixel coordinates (x_px, y_px) into integer [0, 1000] x [0, 1000] grid."""
     if screen_width <= 0 or screen_height <= 0:
         raise ValueError("screen_width and screen_height must be positive integers")
 
@@ -85,7 +85,7 @@ def denormalize_from_grid_1000(
     origin_y: int = 0,
     dpi_scale: float = 1.0,
 ) -> tuple[int, int]:
-    """Map [0, 1000] x [0, 1000] normalized coordinates back to physical screen pixels."""
+    """REQ-CU-002: Map [0, 1000] x [0, 1000] normalized coordinates back to physical screen pixels."""
     if norm_x < 0 or norm_x > 1000 or norm_y < 0 or norm_y > 1000:
         raise ValueError(f"Normalized coordinates must be within [0, 1000], got ({norm_x}, {norm_y})")
     if screen_width <= 0 or screen_height <= 0:
@@ -144,7 +144,7 @@ def annotate_som_elements(
     frame: dict[str, Any],
     elements: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    """Render Set-of-Marks (SoM) bounding boxes onto an RGB frame and build mark catalog."""
+    """REQ-CU-002: Render Set-of-Marks (SoM) bounding boxes onto an RGB frame and build mark catalog."""
     width = int(frame["width"])
     height = int(frame["height"])
     orig_rgb = bytes(frame["rgb_bytes"])

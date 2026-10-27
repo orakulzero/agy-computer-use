@@ -140,7 +140,7 @@ class _INPUT(ctypes.Structure):
 
 
 class ComputerUseSafetyAbort(RuntimeError):
-    """Raised when a GUI action violates fail-safe corner or SafetyPolicy guardrails."""
+    """REQ-CU-003: Raised when a GUI action violates fail-safe corner or SafetyPolicy guardrails."""
 
 
 def _resolve_vk(key_name: str) -> int:
@@ -296,7 +296,7 @@ def clipboard_paste_text(
     target_hwnd: int | None = None,
     dry_run: bool = True,
 ) -> dict[str, Any]:
-    """Set Win32 CF_UNICODETEXT clipboard, verify readback before paste, and dispatch Ctrl+V.
+    """REQ-CUA-03: Set Win32 CF_UNICODETEXT clipboard, verify readback before paste, and dispatch Ctrl+V.
 
     Implements the verified clipboard paste mechanism from codex-computer-use (0x138043):
     OpenClipboard -> GlobalAlloc -> SetClipboardData(CF_UNICODETEXT) -> read-back verify -> Ctrl+V.
@@ -453,7 +453,7 @@ def dispatch_gui_action(
     screenshot_id: str | None = None,
     session_manager: Any | None = None,
 ) -> dict[str, Any]:
-    """Synthesize and optionally execute a Win32 GUI input action."""
+    """REQ-CU-003: Synthesize and optionally execute a Win32 GUI input action."""
     if action_type not in SUPPORTED_ACTION_TYPES:
         raise ValueError(
             f"Unsupported action_type '{action_type}'. Supported: {SUPPORTED_ACTION_TYPES}"

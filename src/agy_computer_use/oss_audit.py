@@ -49,7 +49,7 @@ _ALLOWED_MANIFEST_KEYS: frozenset[str] = frozenset(
 
 
 def audit_git_repository(repo_root: Path | str) -> dict[str, Any]:
-    """Scan all text files under repo_root for Cyrillic characters and PII tokens."""
+    """REQ-CU-006: Scan all text files under repo_root for Cyrillic characters and PII tokens."""
     root = Path(repo_root).resolve()
     cyrillic_violations: list[str] = []
     pii_violations: list[str] = []
@@ -91,7 +91,7 @@ def audit_git_repository(repo_root: Path | str) -> dict[str, Any]:
 
 
 def validate_plugin_bundle(plugin_dir: Path | str) -> dict[str, Any]:
-    """Validate an Antigravity 2.0 native plugin directory structure and MCP constraints."""
+    """REQ-CU-006: Validate an Antigravity 2.0 native plugin directory structure and MCP constraints."""
     pdir = Path(plugin_dir).resolve()
     errors: list[str] = []
 

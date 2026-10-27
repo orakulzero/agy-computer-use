@@ -51,7 +51,7 @@ def format_uia_tree_text(
     screen_width: int = 1920,
     screen_height: int = 1080,
 ) -> str:
-    """Format UIA element list into a compact #1..#N indexed text representation."""
+    """REQ-CUA-01: Format UIA element list into a compact #1..#N indexed text representation."""
     if not elements:
         return "(no interactive UIA elements)"
 
@@ -86,7 +86,7 @@ def diff_uia_trees(
     previous_elements: list[dict[str, Any]],
     current_elements: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    """Compute structural diff between two UIA element snapshots."""
+    """REQ-CUA-01: Compute structural diff between two UIA element snapshots."""
     prev_by_key: dict[tuple[int, str], dict[str, Any]] = {}
     for idx, el in enumerate(previous_elements, start=1):
         key = (int(el.get("hwnd", 0)), str(el.get("element_id", f"el-{idx}")))
@@ -175,7 +175,7 @@ def synthesize_bezier_cursor_path(
     end_px: tuple[int, int],
     steps: int = 12,
 ) -> dict[str, Any]:
-    """Synthesize a 7-control-point (P0..P6) two-segment cubic Bezier cursor trajectory.
+    """REQ-CUA-04: Synthesize a 7-control-point (P0..P6) two-segment cubic Bezier cursor trajectory.
 
     Replicates the DirectComposition expression graph from codex-computer-use:
       Progress < 0.5 -> FirstHalfPoint(P0..P3, Progress * 2.0)
@@ -242,7 +242,7 @@ def synthesize_bezier_cursor_path(
 
 
 def apply_exclude_from_capture(hwnd: int, exclude: bool = True) -> dict[str, Any]:
-    """Set WDA_EXCLUDEFROMCAPTURE (0x11) on an overlay HWND so screenshots never include it."""
+    """REQ-CUA-04: Set WDA_EXCLUDEFROMCAPTURE (0x11) on an overlay HWND so screenshots never include it."""
     affinity = WDA_EXCLUDEFROMCAPTURE if exclude else WDA_NONE
     applied = False
     if sys.platform == "win32" and int(hwnd) > 0:
@@ -266,7 +266,7 @@ def apply_exclude_from_capture(hwnd: int, exclude: bool = True) -> dict[str, Any
 
 
 class InterruptionMonitor:
-    """Monitors physical ESC key state and unexpected human cursor movement."""
+    """REQ-CUA-05: Monitors physical ESC key state and unexpected human cursor movement."""
 
     def __init__(self, mouse_tolerance_px: int = 45) -> None:
         self.mouse_tolerance_px = max(5, int(mouse_tolerance_px))
@@ -275,7 +275,7 @@ class InterruptionMonitor:
         self.interruption_reason: str | None = None
 
     def record_expected_cursor(self, x_px: int, y_px: int) -> None:
-        """Record the cursor position last commanded by the agent."""
+        """REQ-CUA-05: Record the cursor position last commanded by the agent."""
         self.last_expected_cursor_px = (int(x_px), int(y_px))
 
     def check_interruption(
@@ -284,7 +284,7 @@ class InterruptionMonitor:
         simulated_cursor_px: tuple[int, int] | None = None,
         check_live_win32: bool = False,
     ) -> dict[str, Any]:
-        """Verify whether the user interrupted execution via ESC or mouse movement."""
+        """REQ-CUA-05: Verify whether the user interrupted execution via ESC or mouse movement."""
         if simulated_esc_pressed:
             self.interrupted = True
             self.interruption_reason = "computer use interrupted by ESC"
@@ -340,14 +340,14 @@ class InterruptionMonitor:
 
 
 class CompactionImageBudget:
-    """Bounds retained raw screenshot byte buffers across long CUA sessions (0.166.0-alpha.2 pattern)."""
+    """REQ-CUA-01 / REQ-CUA-05: Bounds retained raw screenshot byte buffers across long CUA sessions (0.166.0-alpha.2 pattern)."""
 
     def __init__(self, max_retained_images: int = 3) -> None:
         self.max_retained_images = max(1, int(max_retained_images))
         self._history: list[dict[str, Any]] = []
 
     def register_snapshot(self, snapshot: dict[str, Any]) -> dict[str, Any]:
-        """Store snapshot and evict heavy RGB/PNG/BMP byte payloads from older entries."""
+        """REQ-CUA-01 / REQ-CUA-05: Store snapshot and evict heavy RGB/PNG/BMP byte payloads from older entries."""
         self._history.append(snapshot)
         evicted_count = 0
         if len(self._history) > self.max_retained_images:
@@ -370,7 +370,7 @@ class CompactionImageBudget:
 
 
 class WindowSessionManager:
-    """Stateful Window2 Session Manager with screenshotId Stale-Geometry Guard & Diagnostics."""
+    """REQ-CUA-02: Stateful Window2 Session Manager with screenshotId Stale-Geometry Guard & Diagnostics."""
 
     def __init__(self, max_retained_images: int = 4) -> None:
         self._sessions: dict[int, dict[str, Any]] = {}
@@ -380,7 +380,7 @@ class WindowSessionManager:
         self.last_capture_invalidation_reason: str | None = None
 
     def reset(self) -> dict[str, Any]:
-        """Clear all cached window sessions and screenshotId records."""
+        """REQ-CUA-02: Clear all cached window sessions and screenshotId records."""
         cleared_sessions = len(self._sessions)
         cleared_screenshots = len(self._screenshots)
         self._sessions.clear()
@@ -403,7 +403,7 @@ class WindowSessionManager:
         synthetic_seed: int | None = None,
         override_bbox_px: tuple[int, int, int, int] | None = None,
     ) -> dict[str, Any]:
-        """Capture window state, UIA tree (#1..#N), tree diff, untrusted evidence XML, and screenshotId."""
+        """REQ-CUA-02: Capture window state, UIA tree (#1..#N), tree diff, untrusted evidence XML, and screenshotId."""
         windows = enumerate_visible_windows(include_minimized=False)
         target_win: dict[str, Any] | None = None
         if hwnd is not None and int(hwnd) > 0:
@@ -539,7 +539,7 @@ class WindowSessionManager:
         }
 
     def update_window_bounds(self, hwnd: int, new_bounds: tuple[int, int, int, int]) -> None:
-        """Update tracked window bounds (simulating or reflecting a window move/resize)."""
+        """REQ-CUA-02: Update tracked window bounds (simulating or reflecting a window move/resize)."""
         resolved_hwnd = int(hwnd)
         if resolved_hwnd in self._sessions:
             old_bounds = self._sessions[resolved_hwnd]["bounds"]
@@ -552,7 +552,7 @@ class WindowSessionManager:
         screenshot_id: str,
         current_bounds: tuple[int, int, int, int] | None = None,
     ) -> dict[str, Any]:
-        """Verify that screenshot_id exists and its window geometry has not become stale."""
+        """REQ-CUA-02: Verify that screenshot_id exists and its window geometry has not become stale."""
         if not screenshot_id or screenshot_id not in self._screenshots:
             self.last_capture_invalidation_reason = "unknown_screenshot_id"
             raise ComputerUseSafetyAbort(
@@ -593,7 +593,7 @@ class WindowSessionManager:
         mouse_button: str = "left",
         dry_run: bool = True,
     ) -> dict[str, Any]:
-        """Click a UIA element by its 1-based index (#1..#N) without manual pixel calculation."""
+        """REQ-CUA-02: Click a UIA element by its 1-based index (#1..#N) without manual pixel calculation."""
         if mouse_button == "right" and int(click_count) >= 2:
             raise ComputerUseSafetyAbort("right double click is not supported")
 
@@ -646,7 +646,7 @@ class WindowSessionManager:
         value: str,
         dry_run: bool = True,
     ) -> dict[str, Any]:
-        """Set text value directly on a UIA control (#1..#N) via WM_SETTEXT + clipboard fallback."""
+        """REQ-CUA-02: Set text value directly on a UIA control (#1..#N) via WM_SETTEXT + clipboard fallback."""
         session = self._sessions.get(int(hwnd))
         if session is None or not session["last_elements"]:
             raise KeyError(f"No UIA elements cached for window hwnd={hwnd}; call get_window_state first")
@@ -694,7 +694,7 @@ class WindowSessionManager:
         pages: int = 1,
         dry_run: bool = True,
     ) -> dict[str, Any]:
-        """Scroll a specific UIA element (#1..#N) in direction ('up', 'down', 'left', 'right')."""
+        """REQ-CUA-02: Scroll a specific UIA element (#1..#N) in direction ('up', 'down', 'left', 'right')."""
         dir_norm = str(direction).strip().lower()
         if dir_norm not in ("up", "down", "left", "right"):
             raise ValueError(f"Unsupported scroll direction '{direction}'. Expected up/down/left/right.")
@@ -740,7 +740,7 @@ class WindowSessionManager:
         }
 
     def get_diagnostic_state(self, hwnd: int | None = None) -> dict[str, Any]:
-        """Return cacheDiagnostics telemetry matching codex-computer-use diagnostic_state RPC."""
+        """REQ-CUA-02: Return cacheDiagnostics telemetry matching codex-computer-use diagnostic_state RPC."""
         sessions_list = list(self._sessions.values())
         target = self._sessions.get(int(hwnd)) if hwnd is not None else (sessions_list[-1] if sessions_list else None)
         return {

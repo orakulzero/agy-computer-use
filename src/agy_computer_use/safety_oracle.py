@@ -54,7 +54,7 @@ def detect_ui_prompt_injection(
     ui_text: str,
     patterns: tuple[str, ...] | list[str] = DEFAULT_PROMPT_INJECTION_PATTERNS,
 ) -> dict[str, Any]:
-    """Scan untrusted UI/UIA text for indirect prompt-injection patterns."""
+    """REQ-CUA-01 / REQ-CU-004: Scan untrusted UI/UIA text for indirect prompt-injection patterns."""
     raw = str(ui_text or "")
     lower = raw.lower()
     matched = [pat for pat in patterns if pat and pat.lower() in lower]
@@ -80,7 +80,7 @@ def wrap_untrusted_ui_evidence(
     ui_text: str,
     source: str = "uia_tree",
 ) -> dict[str, Any]:
-    """Wrap untrusted UIA/screen text in an isolated guardian review envelope (0.166.0-alpha.2 pattern)."""
+    """REQ-CUA-01 / REQ-CU-004: Wrap untrusted UIA/screen text in an isolated guardian review envelope (0.166.0-alpha.2 pattern)."""
     scan = detect_ui_prompt_injection(ui_text)
     inj_flag = "true" if scan["injection_detected"] else "false"
     envelope_xml = (
@@ -99,7 +99,7 @@ def wrap_untrusted_ui_evidence(
 
 
 def compute_frame_dhash64(rgb_bytes: bytes, width: int, height: int) -> int:
-    """Compute a 64-bit horizontal gradient difference hash over an 8x9 luminance grid."""
+    """REQ-CU-004: Compute a 64-bit horizontal gradient difference hash over an 8x9 luminance grid."""
     if width <= 0 or height <= 0:
         raise ValueError("width and height must be positive integers")
     expected = width * height * 3
@@ -136,7 +136,7 @@ def compute_visual_hamming_delta(
     dhash_after: int,
     fact_threshold: int = 2,
 ) -> dict[str, Any]:
-    """Compute 64-bit Hamming distance and classify epistemic status ([FACT] vs [NO_EFFECT])."""
+    """REQ-CU-004: Compute 64-bit Hamming distance and classify epistemic status ([FACT] vs [NO_EFFECT])."""
     h_before = int(dhash_before) & _UINT64_MASK
     h_after = int(dhash_after) & _UINT64_MASK
     xor_bits = h_before ^ h_after
@@ -155,7 +155,7 @@ def compute_visual_hamming_delta(
 
 
 class SafetyPolicy:
-    """Window title and class safety policy guarding sensitive OS/credential surfaces."""
+    """REQ-CU-004: Window title and class safety policy guarding sensitive OS/credential surfaces."""
 
     def __init__(
         self,
@@ -170,7 +170,7 @@ class SafetyPolicy:
         )
 
     def evaluate_window_target(self, title: str, class_name: str = "") -> dict[str, Any]:
-        """Evaluate whether a target window title and class_name are permitted."""
+        """REQ-CU-004: Evaluate whether a target window title and class_name are permitted."""
         lower_title = (title or "").lower()
         lower_class = (class_name or "").lower()
 
@@ -272,7 +272,7 @@ def _build_merkle_levels_and_proofs(
 
 
 class VisualActionOracle:
-    """Visual Action Verification Oracle with RFC 6962 SHA-256 Merkle Audit Trail."""
+    """REQ-CU-004 / REQ-CU-005: Visual Action Verification Oracle with RFC 6962 SHA-256 Merkle Audit Trail."""
 
     def __init__(self, policy: SafetyPolicy | None = None, fact_threshold: int = 2) -> None:
         self.policy = policy if policy is not None else SafetyPolicy()
@@ -287,7 +287,7 @@ class VisualActionOracle:
         frame_after: dict[str, Any],
         target_window: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """Verify window safety policy, compute dHash delta, and append RFC 6962 Merkle receipt."""
+        """REQ-CU-004 / REQ-CU-005: Verify window safety policy, compute dHash delta, and append RFC 6962 Merkle receipt."""
         win_info = target_window or {"title": "Application Window", "class_name": "StandardWindow"}
         verdict = self.policy.evaluate_window_target(
             title=str(win_info.get("title", "")),
@@ -348,7 +348,7 @@ class VisualActionOracle:
         return copy.deepcopy(self._receipts[-1])
 
     def get_merkle_audit_summary(self) -> dict[str, Any]:
-        """Return the complete RFC 6962 Merkle audit tree summary and signed receipts."""
+        """REQ-CU-004 / REQ-CU-005: Return the complete RFC 6962 Merkle audit tree summary and signed receipts."""
         root_hex, levels_hex, proofs = _build_merkle_levels_and_proofs(self._leaf_hashes)
         out_receipts: list[dict[str, Any]] = []
         for i, rec in enumerate(self._receipts):
@@ -370,7 +370,7 @@ class VisualActionOracle:
         proof: list[tuple[str, str]],
         expected_root: str,
     ) -> bool:
-        """Verify an action receipt against an RFC 6962 inclusion proof and expected Merkle root."""
+        """REQ-CU-005: Verify an action receipt against an RFC 6962 inclusion proof and expected Merkle root."""
         if not isinstance(receipt, dict) or not isinstance(expected_root, str) or len(expected_root) != 64:
             return False
         try:

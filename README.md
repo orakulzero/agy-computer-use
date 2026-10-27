@@ -1,6 +1,6 @@
-# AGY Computer Use & GUI Grounding (`agy-computer-use` v1.0.0 Prototype)
+# AGY Computer Use & GUI Grounding (`agy-computer-use` v1.1.0)
 
-> **Status**: Public Prototype Release (`v1.0.0-prototype`). Actively tested on Windows 11 (`WinSta0\Default` and background `PrintWindow` / Ghost Desktop sessions) with Google Antigravity 2.0.
+> **Status**: Production Hardened Release (`v1.1.0`). Actively tested on Windows 11 (`WinSta0\Default` and background `PrintWindow` / Ghost Desktop sessions) with Google Antigravity 2.0.
 
 Native Windows Desktop Computer-Use, UIA + Set-of-Marks (SoM) Grounding, `[0, 1000]` Bijective Coordinate Normalization, Win32 `SendInput` & Focusless `PostMessageW` Action Synthesis, Window Session Management, and RFC 6962 Visual Safety Oracle for Google Antigravity 2.0.
 
@@ -36,8 +36,8 @@ Native Windows Desktop Computer-Use, UIA + Set-of-Marks (SoM) Grounding, `[0, 10
    - `SafetyPolicy` window filter blocking password managers, credential dialogs, UAC, and SmartScreen, plus indirect UI prompt-injection scanner (`detect_ui_prompt_injection`) and `<node_repl_review_evidence>` XML isolation (`wrap_untrusted_ui_evidence`).
    - `VisualActionOracle` maintaining an RFC 6962 (`0x00` leaf / `0x01` internal node) SHA-256 Merkle audit trail with cryptographic inclusion proof verification (`verify_action_receipt`).
 
-7. **7-Tool MCP JSON-RPC 2.0 Server (`agy_computer_use.mcp_server`)**
-   - `cu_capture_som`, `cu_click`, `cu_type`, `cu_hotkey`, `cu_scroll`, `cu_verify_oracle`, `cu_merkle_audit` (all composite tool identifiers strictly `<= 50` chars, well below the 64-character Antigravity limit).
+7. **10-Tool MCP JSON-RPC 2.0 Server (`agy_computer_use.mcp_server`)**
+   - `cu_capture_som`, `cu_click`, `cu_type`, `cu_hotkey`, `cu_scroll`, `cu_verify_oracle`, `cu_merkle_audit`, `cu_bg_capture`, `cu_bg_dispatch`, `cu_ghost_desktop` (all composite tool identifiers strictly `<= 50` chars, well below the 64-character Antigravity limit).
 
 ## Installation & Verification
 

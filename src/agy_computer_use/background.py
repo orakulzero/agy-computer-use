@@ -129,9 +129,12 @@ def _run_on_desktop(desktop_name: str, fn: Callable[[], _T], create_if_missing: 
 
     def _worker() -> None:
         h_desk = 0
+        h_orig = 0
         user32 = None
+        kernel32 = None
         try:
             user32 = ctypes.windll.user32
+            kernel32 = ctypes.windll.kernel32
             if hasattr(user32, "OpenDesktopW") and hasattr(user32, "SetThreadDesktop"):
                 h_desk = user32.OpenDesktopW(desktop_name, 0, False, DESKTOP_ALL_ACCESS | GENERIC_ALL)
                 if not h_desk and create_if_missing and hasattr(user32, "CreateDesktopW"):
@@ -144,6 +147,8 @@ def _run_on_desktop(desktop_name: str, fn: Callable[[], _T], create_if_missing: 
                         None,
                     )
                 if h_desk:
+                    if hasattr(user32, "GetThreadDesktop") and hasattr(kernel32, "GetCurrentThreadId"):
+                        h_orig = user32.GetThreadDesktop(kernel32.GetCurrentThreadId())
                     user32.SetThreadDesktop(h_desk)
         except Exception:
             h_desk = 0
@@ -153,6 +158,11 @@ def _run_on_desktop(desktop_name: str, fn: Callable[[], _T], create_if_missing: 
         except BaseException as exc:
             box["error"] = exc
         finally:
+            if h_orig and user32 is not None:
+                try:
+                    user32.SetThreadDesktop(h_orig)
+                except Exception:
+                    pass
             if h_desk and user32 is not None and hasattr(user32, "CloseDesktop"):
                 try:
                     user32.CloseDesktop(h_desk)
@@ -866,7 +876,7 @@ class GhostDesktopSession:
         )
 
     def close(self, terminate_spawned: bool = True) -> None:
-        """Terminate spawned processes on the ghost desktop and release the desktop handle."""
+        """REQ-CUA-BG-03: Terminate spawned processes on the ghost desktop and release the desktop handle."""
         if sys.platform != "win32":
             return
         kernel32 = ctypes.windll.kernel32

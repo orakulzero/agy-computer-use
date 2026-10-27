@@ -14,9 +14,18 @@ import sys
 from typing import Any
 
 from agy_computer_use.actions import dispatch_gui_action
+from agy_computer_use.background import (
+    capture_window_background,
+    dispatch_background_window_action,
+)
 from agy_computer_use.capture import capture_screen_frame, extract_uia_element_tree
-from agy_computer_use.safety_oracle import VisualActionOracle
+from agy_computer_use.safety_oracle import VisualActionOracle, wrap_untrusted_ui_evidence
 from agy_computer_use.som import annotate_som_elements
+from agy_computer_use.window_session import (
+    WindowSessionManager,
+    format_uia_tree_text,
+    synthesize_bezier_cursor_path,
+)
 
 MCP_TOOLS: tuple[dict[str, Any], ...] = (
     {
@@ -113,6 +122,7 @@ MCP_TOOLS: tuple[dict[str, Any], ...] = (
 )
 
 _SESSION_ORACLE = VisualActionOracle()
+_SESSION_MANAGER = WindowSessionManager()
 _LAST_SOM_MARKS: dict[int, dict[str, Any]] = {}
 
 
@@ -154,6 +164,21 @@ def handle_jsonrpc_request(request: dict[str, Any]) -> dict[str, Any]:
             "result": {"ok": True},
         }
 
+    if method == "diagnostic_state":
+        return {
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "result": _SESSION_MANAGER.get_diagnostic_state(hwnd=params.get("hwnd")),
+        }
+
+    if method == "reset":
+        _LAST_SOM_MARKS = {}
+        return {
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "result": _SESSION_MANAGER.reset(),
+        }
+
     if method == "tools/list":
         return {
             "jsonrpc": "2.0",
@@ -171,29 +196,73 @@ def handle_jsonrpc_request(request: dict[str, Any]) -> dict[str, Any]:
                 height = int(args.get("height", 200))
                 max_el = int(args.get("max_elements", 16))
                 seed = args.get("synthetic_seed")
-                frame = capture_screen_frame(
+                hwnd_arg = args.get("hwnd")
+                if args.get("background") and hwnd_arg is not None:
+                    bg_frame = capture_window_background(
+                        int(hwnd_arg),
+                        desktop_name=str(args.get("desktop_name", "Default")),
+                        fallback_seed=int(seed) if seed is not None else 101,
+                        fallback_width=width,
+                        fallback_height=height,
+                    )
+                    return _wrap_tool_result(
+                        req_id,
+                        {
+                            "ok": True,
+                            "hwnd": int(hwnd_arg),
+                            "width": bg_frame["width"],
+                            "height": bg_frame["height"],
+                            "backend": bg_frame["backend"],
+                            "sha256": bg_frame["sha256"],
+                            "dhash64": bg_frame["dhash64"],
+                            "desktop_name": bg_frame["desktop_name"],
+                        },
+                    )
+                state = _SESSION_MANAGER.get_window_state(
+                    hwnd=int(hwnd_arg) if hwnd_arg is not None else None,
+                    include_screenshot=True,
+                    include_text=True,
+                    max_elements=max_el,
                     width=width,
                     height=height,
                     synthetic_seed=int(seed) if seed is not None else None,
                 )
-                elements = extract_uia_element_tree(max_elements=max_el)
-                som = annotate_som_elements(frame, elements)
-                _LAST_SOM_MARKS = som["marks"]
+                frame_info = state["frame"] or {}
+                marks_dict = frame_info.get("marks") or {}
+                _LAST_SOM_MARKS = marks_dict
                 return _wrap_tool_result(
                     req_id,
                     {
                         "ok": True,
-                        "width": frame["width"],
-                        "height": frame["height"],
-                        "backend": frame["backend"],
-                        "sha256": frame["sha256"],
-                        "mark_count": som["mark_count"],
-                        "marks": {str(k): v for k, v in som["marks"].items()},
+                        "width": frame_info.get("width", width),
+                        "height": frame_info.get("height", height),
+                        "backend": frame_info.get("backend", "synthetic"),
+                        "sha256": frame_info.get("sha256", ""),
+                        "screenshot_id": state["screenshot_id"],
+                        "snapshot_revision": state["snapshot_revision"],
+                        "accessibility_revision": state["accessibility_revision"],
+                        "mark_count": frame_info.get("mark_count", len(marks_dict)),
+                        "marks": {str(k): v for k, v in marks_dict.items()},
+                        "uia_tree_text": state["text"],
+                        "untrusted_evidence": state["untrusted_evidence"],
                     },
                 )
 
             if tool_name == "cu_click":
                 act = str(args.get("action_type", "click"))
+                if args.get("background") and args.get("hwnd") is not None:
+                    bg_res = dispatch_background_window_action(
+                        int(args["hwnd"]),
+                        act,
+                        norm_x=args.get("norm_x", 500),
+                        norm_y=args.get("norm_y", 500),
+                        end_norm_x=args.get("end_norm_x"),
+                        end_norm_y=args.get("end_norm_y"),
+                        desktop_name=str(args.get("desktop_name", "Default")),
+                        dry_run=bool(args.get("dry_run", True)),
+                    )
+                    return _wrap_tool_result(req_id, bg_res)
+                screenshot_id = args.get("screenshot_id")
                 res = dispatch_gui_action(
                     act,
                     norm_x=args.get("norm_x", 500),
@@ -201,7 +270,13 @@ def handle_jsonrpc_request(request: dict[str, Any]) -> dict[str, Any]:
                     mark_id=args.get("mark_id"),
                     marks_catalog=_LAST_SOM_MARKS if _LAST_SOM_MARKS else None,
                     dry_run=bool(args.get("dry_run", True)),
+                    screenshot_id=str(screenshot_id) if screenshot_id else None,
+                    session_manager=_SESSION_MANAGER if screenshot_id else None,
                 )
+                if args.get("smooth_path") and res.get("resolved_px") is not None:
+                    res["bezier_path"] = synthesize_bezier_cursor_path(
+                        (0, 0), res["resolved_px"], steps=8
+                    )
                 return _wrap_tool_result(req_id, res)
 
             if tool_name == "cu_type":
@@ -209,6 +284,7 @@ def handle_jsonrpc_request(request: dict[str, Any]) -> dict[str, Any]:
                     "type_text",
                     text=str(args.get("text", "")),
                     dry_run=bool(args.get("dry_run", True)),
+                    use_clipboard=bool(args.get("use_clipboard", False)),
                 )
                 return _wrap_tool_result(req_id, res)
 
@@ -221,12 +297,15 @@ def handle_jsonrpc_request(request: dict[str, Any]) -> dict[str, Any]:
                 return _wrap_tool_result(req_id, res)
 
             if tool_name == "cu_scroll":
+                screenshot_id = args.get("screenshot_id")
                 res = dispatch_gui_action(
                     "scroll",
                     norm_x=int(args.get("norm_x", 500)),
                     norm_y=int(args.get("norm_y", 500)),
                     scroll_delta=int(args.get("scroll_delta", -120)),
                     dry_run=bool(args.get("dry_run", True)),
+                    screenshot_id=str(screenshot_id) if screenshot_id else None,
+                    session_manager=_SESSION_MANAGER if screenshot_id else None,
                 )
                 return _wrap_tool_result(req_id, res)
 
@@ -260,6 +339,9 @@ def handle_jsonrpc_request(request: dict[str, Any]) -> dict[str, Any]:
 
             if tool_name == "cu_merkle_audit":
                 summary = _SESSION_ORACLE.get_merkle_audit_summary()
+                summary["cacheDiagnostics"] = _SESSION_MANAGER.get_diagnostic_state()[
+                    "cacheDiagnostics"
+                ]
                 return _wrap_tool_result(req_id, summary)
 
             return {

@@ -43,6 +43,10 @@ WM_LBUTTONDBLCLK = 0x0203
 WM_RBUTTONDOWN = 0x0204
 WM_RBUTTONUP = 0x0205
 WM_MOUSEWHEEL = 0x020A
+WM_PASTE = 0x0302
+
+CF_UNICODETEXT = 13
+GMEM_MOVEABLE = 0x0002
 
 SUPPORTED_ACTION_TYPES: tuple[str, ...] = (
     "click",
@@ -187,25 +191,56 @@ def _send_win32_inputs_live(
             if resolved_px is not None and hasattr(user32, "SetCursorPos"):
                 user32.SetCursorPos(int(resolved_px[0]), int(resolved_px[1]))
             if win32_inputs and hasattr(user32, "SendInput"):
-                n = len(win32_inputs)
-                arr = (_INPUT * n)()
-                for i, rec in enumerate(win32_inputs):
-                    rec_type = int(rec.get("type", INPUT_MOUSE))
-                    arr[i].type = rec_type
-                    if rec_type == INPUT_MOUSE:
-                        arr[i].u.mi.dx = int(rec.get("dx", 0))
-                        arr[i].u.mi.dy = int(rec.get("dy", 0))
-                        arr[i].u.mi.mouseData = int(rec.get("mouseData", 0)) & 0xFFFFFFFF
-                        arr[i].u.mi.dwFlags = int(rec.get("dwFlags", 0))
-                        arr[i].u.mi.time = 0
-                        arr[i].u.mi.dwExtraInfo = 0
-                    else:
-                        arr[i].u.ki.wVk = int(rec.get("wVk", 0))
-                        arr[i].u.ki.wScan = int(rec.get("wScan", 0))
-                        arr[i].u.ki.dwFlags = int(rec.get("dwFlags", 0))
-                        arr[i].u.ki.time = 0
-                        arr[i].u.ki.dwExtraInfo = 0
-                user32.SendInput(n, ctypes.byref(arr), ctypes.sizeof(_INPUT))
+                if action_type == "drag" and len(win32_inputs) >= 4:
+                    ax1 = int(win32_inputs[0].get("dx", 0))
+                    ay1 = int(win32_inputs[0].get("dy", 0))
+                    ax2 = int(win32_inputs[2].get("dx", 0))
+                    ay2 = int(win32_inputs[2].get("dy", 0))
+
+                    def _emit_mouse(dx_val: int, dy_val: int, flags_val: int) -> None:
+                        inp = _INPUT()
+                        inp.type = INPUT_MOUSE
+                        inp.u.mi.dx = int(dx_val)
+                        inp.u.mi.dy = int(dy_val)
+                        inp.u.mi.mouseData = 0
+                        inp.u.mi.dwFlags = int(flags_val)
+                        inp.u.mi.time = 0
+                        inp.u.mi.dwExtraInfo = 0
+                        user32.SendInput(1, ctypes.byref(inp), ctypes.sizeof(_INPUT))
+
+                    _emit_mouse(ax1, ay1, MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE)
+                    time.sleep(0.005)
+                    _emit_mouse(ax1, ay1, MOUSEEVENTF_LEFTDOWN | MOUSEEVENTF_ABSOLUTE)
+                    time.sleep(0.006)
+                    steps = 20
+                    for step_idx in range(1, steps + 1):
+                        t = float(step_idx) / float(steps)
+                        ix = int(round(ax1 + (ax2 - ax1) * t))
+                        iy = int(round(ay1 + (ay2 - ay1) * t))
+                        _emit_mouse(ix, iy, MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE)
+                        time.sleep(0.003)
+                    time.sleep(0.008)
+                    _emit_mouse(ax2, ay2, MOUSEEVENTF_LEFTUP | MOUSEEVENTF_ABSOLUTE)
+                else:
+                    n = len(win32_inputs)
+                    arr = (_INPUT * n)()
+                    for i, rec in enumerate(win32_inputs):
+                        rec_type = int(rec.get("type", INPUT_MOUSE))
+                        arr[i].type = rec_type
+                        if rec_type == INPUT_MOUSE:
+                            arr[i].u.mi.dx = int(rec.get("dx", 0))
+                            arr[i].u.mi.dy = int(rec.get("dy", 0))
+                            arr[i].u.mi.mouseData = int(rec.get("mouseData", 0)) & 0xFFFFFFFF
+                            arr[i].u.mi.dwFlags = int(rec.get("dwFlags", 0))
+                            arr[i].u.mi.time = 0
+                            arr[i].u.mi.dwExtraInfo = 0
+                        else:
+                            arr[i].u.ki.wVk = int(rec.get("wVk", 0))
+                            arr[i].u.ki.wScan = int(rec.get("wScan", 0))
+                            arr[i].u.ki.dwFlags = int(rec.get("dwFlags", 0))
+                            arr[i].u.ki.time = 0
+                            arr[i].u.ki.dwExtraInfo = 0
+                    user32.SendInput(n, ctypes.byref(arr), ctypes.sizeof(_INPUT))
 
             hwnd = int(target_hwnd) if target_hwnd else 0
             if not hwnd and resolved_px is not None and hasattr(user32, "WindowFromPoint"):
@@ -238,10 +273,10 @@ def _send_win32_inputs_live(
                 elif action_type == "scroll":
                     wparam = ((int(scroll_delta) & 0xFFFF) << 16)
                     user32.PostMessageW(hwnd, WM_MOUSEWHEEL, wparam, lparam)
-                elif action_type == "type_text":
+                elif action_type == "type_text" and target_hwnd:
                     for ch in str(text or ""):
                         user32.PostMessageW(hwnd, WM_CHAR, ord(ch), 0)
-                elif action_type in ("hotkey", "key_tap"):
+                elif action_type in ("hotkey", "key_tap") and target_hwnd:
                     for rec in win32_inputs:
                         if int(rec.get("type", 0)) == INPUT_KEYBOARD:
                             vk = int(rec.get("wVk", 0))
@@ -252,6 +287,148 @@ def _send_win32_inputs_live(
             pass
 
     _run_on_default_desktop(_do_send)
+
+
+def clipboard_paste_text(
+    text: str,
+    verify_readback: bool = True,
+    restore_previous: bool = True,
+    target_hwnd: int | None = None,
+    dry_run: bool = True,
+) -> dict[str, Any]:
+    """Set Win32 CF_UNICODETEXT clipboard, verify readback before paste, and dispatch Ctrl+V.
+
+    Implements the verified clipboard paste mechanism from codex-computer-use (0x138043):
+    OpenClipboard -> GlobalAlloc -> SetClipboardData(CF_UNICODETEXT) -> read-back verify -> Ctrl+V.
+    """
+    payload = str(text or "")
+    ctrl_vk = _resolve_vk("ctrl")
+    v_vk = _resolve_vk("v")
+    ctrl_v_inputs = [
+        _key_record(ctrl_vk, 0, 0),
+        _key_record(v_vk, 0, 0),
+        _key_record(v_vk, 0, KEYEVENTF_KEYUP),
+        _key_record(ctrl_vk, 0, KEYEVENTF_KEYUP),
+    ]
+
+    if dry_run or sys.platform != "win32":
+        return {
+            "ok": True,
+            "action_type": "clipboard_paste",
+            "text": payload,
+            "verified_readback": True,
+            "restored_previous": bool(restore_previous),
+            "dry_run": bool(dry_run),
+            "win32_inputs": ctrl_v_inputs,
+            "timestamp": time.time(),
+        }
+
+    box: dict[str, Any] = {"verified": False, "restored": False, "error": None}
+
+    def _do_clipboard_paste() -> None:
+        user32 = ctypes.windll.user32
+        kernel32 = ctypes.windll.kernel32
+        kernel32.GlobalAlloc.argtypes = [wintypes.UINT, ctypes.c_size_t]
+        kernel32.GlobalAlloc.restype = wintypes.HANDLE
+        kernel32.GlobalLock.argtypes = [wintypes.HANDLE]
+        kernel32.GlobalLock.restype = ctypes.c_void_p
+        kernel32.GlobalUnlock.argtypes = [wintypes.HANDLE]
+        kernel32.GlobalFree.argtypes = [wintypes.HANDLE]
+        user32.GetClipboardData.argtypes = [wintypes.UINT]
+        user32.GetClipboardData.restype = wintypes.HANDLE
+        user32.SetClipboardData.argtypes = [wintypes.UINT, wintypes.HANDLE]
+        user32.SetClipboardData.restype = wintypes.HANDLE
+
+        def _set_clip_utf16(val: str) -> bool:
+            raw_utf16 = val.encode("utf-16-le") + b"\x00\x00"
+            h_mem = kernel32.GlobalAlloc(GMEM_MOVEABLE, len(raw_utf16))
+            if not h_mem:
+                return False
+            ptr = kernel32.GlobalLock(h_mem)
+            if not ptr:
+                kernel32.GlobalFree(h_mem)
+                return False
+            ctypes.memmove(ptr, raw_utf16, len(raw_utf16))
+            kernel32.GlobalUnlock(h_mem)
+            user32.EmptyClipboard()
+            if not user32.SetClipboardData(CF_UNICODETEXT, h_mem):
+                kernel32.GlobalFree(h_mem)
+                return False
+            return True
+
+        def _get_clip_utf16() -> str | None:
+            h_data = user32.GetClipboardData(CF_UNICODETEXT)
+            if not h_data:
+                return None
+            ptr = kernel32.GlobalLock(h_data)
+            if not ptr:
+                return None
+            try:
+                return ctypes.wstring_at(ptr)
+            finally:
+                kernel32.GlobalUnlock(h_data)
+
+        prev_text: str | None = None
+        opened = False
+        for _ in range(5):
+            if user32.OpenClipboard(0):
+                opened = True
+                break
+            time.sleep(0.01)
+
+        if not opened:
+            box["error"] = "Failed to open Win32 clipboard"
+            return
+
+        try:
+            if restore_previous:
+                prev_text = _get_clip_utf16()
+            if not _set_clip_utf16(payload):
+                box["error"] = "Failed to set CF_UNICODETEXT clipboard data"
+                return
+            if verify_readback:
+                readback = _get_clip_utf16()
+                if readback != payload:
+                    box["error"] = "clipboard did not contain requested text after setting it"
+                    return
+                box["verified"] = True
+            else:
+                box["verified"] = True
+        finally:
+            user32.CloseClipboard()
+
+        # Dispatch Ctrl+V
+        _send_win32_inputs_live(
+            None,
+            ctrl_v_inputs,
+            action_type="hotkey",
+            target_hwnd=target_hwnd,
+        )
+        if target_hwnd and hasattr(user32, "PostMessageW"):
+            user32.PostMessageW(int(target_hwnd), WM_PASTE, 0, 0)
+
+        if restore_previous and prev_text is not None:
+            time.sleep(0.08)
+            if user32.OpenClipboard(0):
+                try:
+                    box["restored"] = _set_clip_utf16(prev_text)
+                finally:
+                    user32.CloseClipboard()
+
+    _run_on_default_desktop(_do_clipboard_paste)
+    if box["error"] is not None:
+        raise ComputerUseSafetyAbort(str(box["error"]))
+
+    return {
+        "ok": True,
+        "action_type": "clipboard_paste",
+        "text": payload,
+        "verified_readback": bool(box["verified"]),
+        "restored_previous": bool(box["restored"]),
+        "dry_run": False,
+        "win32_inputs": ctrl_v_inputs,
+        "timestamp": time.time(),
+    }
 
 
 def dispatch_gui_action(
@@ -272,12 +449,18 @@ def dispatch_gui_action(
     dpi_scale: float = 1.0,
     dry_run: bool = True,
     fail_safe_corner: bool = True,
+    use_clipboard: bool = False,
+    screenshot_id: str | None = None,
+    session_manager: Any | None = None,
 ) -> dict[str, Any]:
     """Synthesize and optionally execute a Win32 GUI input action."""
     if action_type not in SUPPORTED_ACTION_TYPES:
         raise ValueError(
             f"Unsupported action_type '{action_type}'. Supported: {SUPPORTED_ACTION_TYPES}"
         )
+
+    if screenshot_id is not None and session_manager is not None:
+        session_manager.validate_screenshot_id(screenshot_id)
 
     target_hwnd: int | None = None
     if mark_id is not None:
@@ -406,7 +589,16 @@ def dispatch_gui_action(
             win32_inputs.append(_key_record(vk, 0, 0))
             win32_inputs.append(_key_record(vk, 0, KEYEVENTF_KEYUP))
 
-    if not dry_run and sys.platform == "win32":
+    clipboard_result: dict[str, Any] | None = None
+    if action_type == "type_text" and use_clipboard:
+        clipboard_result = clipboard_paste_text(
+            str(text or ""),
+            verify_readback=True,
+            restore_previous=True,
+            target_hwnd=target_hwnd,
+            dry_run=dry_run,
+        )
+    elif not dry_run and sys.platform == "win32":
         _send_win32_inputs_live(
             resolved_px,
             win32_inputs,
@@ -416,7 +608,7 @@ def dispatch_gui_action(
             scroll_delta=scroll_delta,
         )
 
-    return {
+    out_payload: dict[str, Any] = {
         "ok": True,
         "action_type": action_type,
         "dry_run": bool(dry_run),
@@ -426,3 +618,8 @@ def dispatch_gui_action(
         "win32_inputs": win32_inputs,
         "timestamp": time.time(),
     }
+    if screenshot_id is not None:
+        out_payload["screenshot_id"] = screenshot_id
+    if clipboard_result is not None:
+        out_payload["clipboard_paste"] = clipboard_result
+    return out_payload

@@ -2,7 +2,12 @@
   "mcpServers": {
     "agy-computer-use_computer_use": {
       "command": "python",
-      "args": ["-m", "agy_computer_use.mcp_server"],
+      "args": [
+        "-W",
+        "ignore::RuntimeWarning",
+        "-m",
+        "agy_computer_use.mcp_server"
+      ],
       "timeout_ms": 15000,
       "tools": [
         "cu_capture_som",
@@ -11,10 +16,7 @@
         "cu_hotkey",
         "cu_scroll",
         "cu_verify_oracle",
-        "cu_merkle_audit",
-        "cu_bg_capture",
-        "cu_bg_dispatch",
-        "cu_ghost_desktop"
+        "cu_merkle_audit"
       ]
     }
   }

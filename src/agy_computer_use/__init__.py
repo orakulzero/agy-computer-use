@@ -28,11 +28,6 @@ from agy_computer_use.capture import (
     enumerate_visible_windows,
     extract_uia_element_tree,
 )
-from agy_computer_use.mcp_server import (
-    MCP_TOOLS,
-    handle_jsonrpc_request,
-    run_stdio_server,
-)
 from agy_computer_use.oss_audit import (
     audit_git_repository,
     validate_plugin_bundle,
@@ -131,3 +126,10 @@ __all__ = [
     "wrap_untrusted_ui_evidence",
 ]
 
+
+
+def __getattr__(name: str):
+    if name in ("MCP_TOOLS", "handle_jsonrpc_request", "run_stdio_server"):
+        from agy_computer_use import mcp_server
+        return getattr(mcp_server, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

@@ -20,6 +20,11 @@ VALID_ANCHORS: tuple[str, ...] = (
 )
 
 
+def _validate_anchor_position(anchor: str) -> bool:
+    """Validate if the given anchor position is one of the valid options."""
+    return anchor in VALID_ANCHORS
+
+
 @dataclass(frozen=True)
 class SafeBadgePlacement:
     """@requirement("REQ-CU-OVERLAY-01") Immutable SoM badge placement descriptor."""

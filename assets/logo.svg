@@ -1,9 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
-  <rect x="8" y="14" width="112" height="82" rx="10" fill="#0F172A" stroke="#38BDF8" stroke-width="4"/>
-  <rect x="20" y="26" width="40" height="24" rx="4" fill="#1E293B" stroke="#22C55E" stroke-width="2.5"/>
-  <text x="26" y="42" fill="#22C55E" font-family="monospace" font-size="12" font-weight="bold">#1</text>
-  <rect x="68" y="54" width="40" height="28" rx="4" fill="#1E293B" stroke="#F59E0B" stroke-width="2.5"/>
-  <text x="74" y="72" fill="#F59E0B" font-family="monospace" font-size="12" font-weight="bold">#2</text>
-  <path d="M56 50 L74 84 L62 84 L66 98 L58 100 L54 86 L46 92 Z" fill="#F8FAFC" stroke="#0F172A" stroke-width="2"/>
-  <rect x="44" y="102" width="40" height="10" rx="3" fill="#38BDF8"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" fill="none">
+  <rect x="6" y="6" width="116" height="116" rx="26" fill="#0B1120" stroke="#38BDF8" stroke-width="2.8"/>
+  <rect x="12" y="12" width="104" height="104" rx="20" fill="#0F172A" stroke="#F59E0B" stroke-opacity="0.28" stroke-width="1.2"/>
+  <circle cx="64" cy="68" r="38" fill="#38BDF8" fill-opacity="0.09"/>
+  <path d="M20 68 H108 M64 34 V108" stroke="#94A3B8" stroke-opacity="0.12" stroke-width="1" stroke-dasharray="3 3"/>
+  <path d="M18 96 V108 H30 M98 108 H110 V96" stroke="#F59E0B" stroke-opacity="0.65" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="18" y="16" width="38" height="15" rx="4.5" fill="#1E293B" stroke="#38BDF8" stroke-width="1.5"/>
+  <text x="37" y="26.5" text-anchor="middle" fill="#38BDF8" font-family="monospace" font-size="8.5" font-weight="bold">GUI</text>
+  <circle cx="104" cy="23.5" r="7" fill="#22C55E" fill-opacity="0.25"/>
+  <circle cx="104" cy="23.5" r="3.8" fill="#22C55E"/>
+  <rect x="26" y="40" width="76" height="50" rx="7" fill="#1E293B" stroke="#38BDF8" stroke-width="2.5"/>
+  <rect x="33" y="47" width="26" height="16" rx="3" fill="#22C55E" fill-opacity="0.2" stroke="#22C55E" stroke-width="2"/>
+  <text x="46" y="58" text-anchor="middle" fill="#22C55E" font-family="monospace" font-size="9" font-weight="bold">#1</text>
+  <rect x="65" y="63" width="28" height="18" rx="3" fill="#F59E0B" fill-opacity="0.2" stroke="#F59E0B" stroke-width="2"/>
+  <text x="79" y="75" text-anchor="middle" fill="#F59E0B" font-family="monospace" font-size="9" font-weight="bold">#2</text>
+  <path d="M56 64 L71 88 L62 88 L65 98 L59 100 L56 90 L50 94 Z" fill="#F8FAFC" stroke="#0F172A" stroke-width="1.6"/>
 </svg>

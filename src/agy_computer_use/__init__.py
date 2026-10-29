@@ -32,6 +32,19 @@ from agy_computer_use.oss_audit import (
     audit_git_repository,
     validate_plugin_bundle,
 )
+from agy_computer_use.recorder import (
+    TrajectoryRecorder,
+    replay_recorded_trajectory,
+)
+from agy_computer_use.replay_recorder import (
+    LosslessReplayRecorder,
+    ReplayFrameEvent,
+)
+from agy_computer_use.safe_overlay import (
+    VALID_ANCHORS,
+    SafeBadgePlacement,
+    SafeMarginOverlay,
+)
 from agy_computer_use.safety_oracle import (
     DEFAULT_PROMPT_INJECTION_PATTERNS,
     SafetyPolicy,
@@ -46,10 +59,6 @@ from agy_computer_use.som import (
     denormalize_from_grid_1000,
     get_monitor_dpi_scale,
     normalize_to_grid_1000,
-)
-from agy_computer_use.recorder import (
-    TrajectoryRecorder,
-    replay_recorded_trajectory,
 )
 from agy_computer_use.template_matcher import (
     compute_integral_image,
@@ -72,7 +81,6 @@ from agy_computer_use.window_session import (
     synthesize_bezier_cursor_path,
 )
 
-
 __version__ = "2.0.0"
 
 __all__ = [
@@ -82,12 +90,17 @@ __all__ = [
     "PW_RENDERFULLCONTENT",
     "SUPPORTED_ACTION_TYPES",
     "TrajectoryRecorder",
+    "VALID_ANCHORS",
     "WDA_EXCLUDEFROMCAPTURE",
     "WDA_NONE",
     "CompactionImageBudget",
     "ComputerUseSafetyAbort",
     "GhostDesktopSession",
     "InterruptionMonitor",
+    "LosslessReplayRecorder",
+    "ReplayFrameEvent",
+    "SafeBadgePlacement",
+    "SafeMarginOverlay",
     "SafetyPolicy",
     "VisualActionOracle",
     "WindowSessionManager",
@@ -127,9 +140,9 @@ __all__ = [
 ]
 
 
-
 def __getattr__(name: str):
     if name in ("MCP_TOOLS", "handle_jsonrpc_request", "run_stdio_server"):
         from agy_computer_use import mcp_server
+
         return getattr(mcp_server, name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

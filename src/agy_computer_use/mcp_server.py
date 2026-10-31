@@ -22,12 +22,10 @@ from agy_computer_use.background import (
     capture_window_background,
     dispatch_background_window_action,
 )
-from agy_computer_use.capture import capture_screen_frame, extract_uia_element_tree
-from agy_computer_use.safety_oracle import VisualActionOracle, wrap_untrusted_ui_evidence
-from agy_computer_use.som import annotate_som_elements
+from agy_computer_use.capture import capture_screen_frame
+from agy_computer_use.safety_oracle import VisualActionOracle
 from agy_computer_use.window_session import (
     WindowSessionManager,
-    format_uia_tree_text,
     synthesize_bezier_cursor_path,
 )
 

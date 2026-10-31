@@ -48,12 +48,10 @@ class TrajectoryRecorder:
         norm_x = act.get("norm_x")
         norm_y = act.get("norm_y")
 
-        if norm_x is not None:
-            if int(norm_x) < 0 or int(norm_x) > 1000:
-                raise ValueError(f"norm_x must be in [0, 1000], got {norm_x}")
-        if norm_y is not None:
-            if int(norm_y) < 0 or int(norm_y) > 1000:
-                raise ValueError(f"norm_y must be in [0, 1000], got {norm_y}")
+        if norm_x is not None and (int(norm_x) < 0 or int(norm_x) > 1000):
+            raise ValueError(f"norm_x must be in [0, 1000], got {norm_x}")
+        if norm_y is not None and (int(norm_y) < 0 or int(norm_y) > 1000):
+            raise ValueError(f"norm_y must be in [0, 1000], got {norm_y}")
 
         dhash_before = (
             compute_frame_dhash64(before_rgb, screen_width, screen_height)
@@ -74,8 +72,8 @@ class TrajectoryRecorder:
             for el in uia_elements:
                 bbox = el.get("bbox_px")
                 if bbox and len(bbox) == 4:
-                    l, t, r, b = bbox
-                    if l <= px_x <= r and t <= px_y <= b:
+                    left, top, right, bottom = bbox
+                    if left <= px_x <= right and top <= px_y <= bottom:
                         candidates.append(el)
             if candidates:
                 candidates.sort(key=lambda e: (e["bbox_px"][2] - e["bbox_px"][0]) * (e["bbox_px"][3] - e["bbox_px"][1]))

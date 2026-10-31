@@ -16,7 +16,7 @@ import argparse
 import json
 from pathlib import Path
 import sys
-from typing import Sequence
+from collections.abc import Sequence
 
 from agy_computer_use.background import (
     GhostDesktopSession,
@@ -29,7 +29,7 @@ from agy_computer_use.capture import (
     extract_uia_element_tree,
 )
 from agy_computer_use.mcp_server import MCP_TOOLS, run_stdio_server
-from agy_computer_use.oss_audit import audit_git_repository, validate_plugin_bundle
+from agy_computer_use.oss_audit import audit_git_repository
 from agy_computer_use.som import annotate_som_elements, get_monitor_dpi_scale
 
 

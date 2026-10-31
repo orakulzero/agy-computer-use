@@ -19,7 +19,8 @@ import hashlib
 import sys
 import threading
 import time
-from typing import Any, Callable, TypeVar
+from typing import Any, TypeVar
+from collections.abc import Callable
 
 from agy_computer_use.actions import ComputerUseSafetyAbort
 from agy_computer_use.capture import (
@@ -32,7 +33,8 @@ from agy_computer_use.capture import (
     encode_rgb_to_png,
 )
 from agy_computer_use.safety_oracle import compute_frame_dhash64
-from agy_computer_use.som import denormalize_from_grid_1000, normalize_to_grid_1000
+from agy_computer_use.som import denormalize_from_grid_1000
+import contextlib
 
 PW_CLIENTONLY = 0x00000001
 PW_RENDERFULLCONTENT = 0x00000002
@@ -159,15 +161,11 @@ def _run_on_desktop(desktop_name: str, fn: Callable[[], _T], create_if_missing: 
             box["error"] = exc
         finally:
             if h_orig and user32 is not None:
-                try:
+                with contextlib.suppress(Exception):
                     user32.SetThreadDesktop(h_orig)
-                except Exception:
-                    pass
             if h_desk and user32 is not None and hasattr(user32, "CloseDesktop"):
-                try:
+                with contextlib.suppress(Exception):
                     user32.CloseDesktop(h_desk)
-                except Exception:
-                    pass
 
     thread = threading.Thread(target=_worker, daemon=True)
     thread.start()
@@ -890,8 +888,6 @@ class GhostDesktopSession:
             self._process_handles.clear()
             self._spawned_pids.clear()
         if self._hdesk:
-            try:
+            with contextlib.suppress(Exception):
                 ctypes.windll.user32.CloseDesktop(self._hdesk)
-            except Exception:
-                pass
             self._hdesk = 0

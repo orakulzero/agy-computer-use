@@ -18,8 +18,10 @@ import struct
 import sys
 import threading
 import time
+import contextlib
 import zlib
-from typing import Any, Callable, TypeVar
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 BI_RGB = 0
 DIB_RGB_COLORS = 0
@@ -91,15 +93,11 @@ def _run_on_default_desktop(fn: Callable[[], _T]) -> _T:
             box["error"] = exc
         finally:
             if h_orig and user32 is not None:
-                try:
+                with contextlib.suppress(Exception):
                     user32.SetThreadDesktop(h_orig)
-                except Exception:
-                    pass
             if h_desk and user32 is not None and hasattr(user32, "CloseDesktop"):
-                try:
+                with contextlib.suppress(Exception):
                     user32.CloseDesktop(h_desk)
-                except Exception:
-                    pass
 
     thread = threading.Thread(target=_worker, daemon=True)
     thread.start()
@@ -200,8 +198,8 @@ def _generate_synthetic_rgb(width: int, height: int, seed: int) -> bytes:
 
     bands: list[bytes] = []
     for r_idx in range(rows):
-        digest_a = hashlib.sha256(f"agy-cu-syn-{seed}-row-{r_idx}-a".encode("utf-8")).digest()
-        digest_b = hashlib.sha256(f"agy-cu-syn-{seed}-row-{r_idx}-b".encode("utf-8")).digest()
+        digest_a = hashlib.sha256(f"agy-cu-syn-{seed}-row-{r_idx}-a".encode()).digest()
+        digest_b = hashlib.sha256(f"agy-cu-syn-{seed}-row-{r_idx}-b".encode()).digest()
         entropy = digest_a + digest_b
         row_segments: list[bytes] = []
         for c_idx in range(cols):

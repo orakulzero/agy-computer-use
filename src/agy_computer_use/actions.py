@@ -577,10 +577,8 @@ def dispatch_gui_action(
     elif action_type == "hotkey":
         key_seq = list(keys or [])
         vks = [_resolve_vk(k) for k in key_seq]
-        for vk in vks:
-            win32_inputs.append(_key_record(vk, 0, 0))
-        for vk in reversed(vks):
-            win32_inputs.append(_key_record(vk, 0, KEYEVENTF_KEYUP))
+        win32_inputs.extend([_key_record(vk, 0, 0) for vk in vks])
+        win32_inputs.extend([_key_record(vk, 0, KEYEVENTF_KEYUP) for vk in reversed(vks)])
 
     elif action_type == "key_tap":
         key_seq = list(keys) if keys else ([text] if text else ["enter"])

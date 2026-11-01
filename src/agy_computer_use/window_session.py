@@ -15,10 +15,8 @@ from __future__ import annotations
 
 import ctypes
 from ctypes import wintypes
-import hashlib
 import math
 import sys
-import time
 from typing import Any
 
 from agy_computer_use.actions import ComputerUseSafetyAbort, dispatch_gui_action
@@ -129,16 +127,19 @@ def diff_uia_trees(
         if key not in curr_by_key:
             removed.append(prev_el)
 
-    diff_lines: list[str] = []
-    for el in added:
-        diff_lines.append(f'+ [{el.get("control_type", "control")}] "{el.get("title", "")}"')
-    for mod in modified:
-        diff_lines.append(
-            f'~ hwnd={mod["hwnd"]} "{mod["before_title"]}" -> "{mod["after_title"]}" '
-            f'bbox={mod["before_bbox"]}->{mod["after_bbox"]}'
-        )
-    for el in removed:
-        diff_lines.append(f'- [{el.get("control_type", "control")}] "{el.get("title", "")}"')
+    diff_lines: list[str] = [
+        f'+ [{el.get("control_type", "control")}] "{el.get("title", "")}"'
+        for el in added
+    ]
+    diff_lines.extend(
+        f'~ hwnd={mod["hwnd"]} "{mod["before_title"]}" -> "{mod["after_title"]}" '
+        f'bbox={mod["before_bbox"]}->{mod["after_bbox"]}'
+        for mod in modified
+    )
+    diff_lines.extend(
+        f'- [{el.get("control_type", "control")}] "{el.get("title", "")}"'
+        for el in removed
+    )
 
     return {
         "has_changes": bool(added or removed or modified),

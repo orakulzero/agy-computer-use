@@ -188,12 +188,11 @@ class SafetyPolicy:
                     "reason": f"Blocked window title '{title}' matches sensitive rule '{blocked_kw}'.",
                 }
 
-        if self.allowed_titles is not None:
-            if not any(allowed_kw in lower_title for allowed_kw in self.allowed_titles):
-                return {
-                    "allowed": False,
-                    "reason": f"Window title '{title}' is not in SafetyPolicy allowed_titles allowlist.",
-                }
+        if self.allowed_titles is not None and not any(allowed_kw in lower_title for allowed_kw in self.allowed_titles):
+            return {
+                "allowed": False,
+                "reason": f"Window title '{title}' is not in SafetyPolicy allowed_titles allowlist.",
+            }
 
         return {
             "allowed": True,
@@ -317,7 +316,7 @@ class VisualActionOracle:
             or hashlib.sha256(frame_after["rgb_bytes"]).hexdigest()
         )
         receipt_id = hashlib.sha256(
-            f"receipt-{idx}-{sha_before}-{sha_after}-{dhash_before}-{dhash_after}".encode("utf-8")
+            f"receipt-{idx}-{sha_before}-{sha_after}-{dhash_before}-{dhash_after}".encode()
         ).hexdigest()[:24]
 
         receipt: dict[str, Any] = {
